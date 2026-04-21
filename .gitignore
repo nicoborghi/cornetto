@@ -1,0 +1,48 @@
+# Byte-compiled / optimized
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Docs build output
+site/
+docs/generated/
+
+# Tests / coverage
+.pytest_cache/
+.benchmarks/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Editor / tooling
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
+
+# mypy / ruff / pyright
+.mypy_cache/
+.ruff_cache/
+.pyright/
+
+# MkDocs cache
+.cache/
+
+# Claude Code local config
+.claude/
