@@ -38,6 +38,7 @@ dependencies = [
     "numpy>=1.24",
     "matplotlib>=3.7",
     "scipy>=1.10",
+    "jax>=0.4",
     "KDExpress>=0.1.0",
 ]
 
