@@ -2004,6 +2004,7 @@ def quick_corner(
     sigmas:        tuple[float, ...]    = (1, 2),
     stat:          str | callable       = "median",
     kwargs_stats:  dict[str, dict] | None = None,
+    kwargs_truths: dict | None             = None,
     color:       str | list[str]      = DEFAULT_PALETTE,
     dark:          bool                 = False,
     figsize:       tuple[float, float] | None = None,
@@ -2053,6 +2054,7 @@ def quick_corner(
         "_callable": _merge(_STAT_DEFAULTS_CALLABLE, kso.get("_callable")),
     }
     stat_kw = _stat_kw_for(stat, stat_kws)
+    kw_truths = _merge(_TRUTH_DEFAULTS, kwargs_truths)
     fill_alpha = stat_kw.get("alpha", 0.25)
     line_lw    = stat_kw.get("lw", 1.0)
     line_ls    = stat_kw.get("ls", "--")
@@ -2176,10 +2178,18 @@ def quick_corner(
                             y_top = float(np.interp(med, x, h))
                             ax.plot([med, med], [0.0, y_top], color=color,
                                     lw=line_lw, ls=line_ls, alpha=line_alpha)
-                    for tv in _truth_scalars(truths, p_row, n_chains):
-                        if tv is not None:
-                            ax.axvline(tv, color="#e63946", lw=1.0, ls=":",
-                                       alpha=0.9)
+                    tv_list = _truth_scalars(truths, p_row, n_chains)
+                    lkw = _line_kw(kw_truths)
+                    all_vals = [v for v in tv_list if v is not None]
+                    seen_1d: set[float] = set()
+                    for ch_idx, tv in enumerate(tv_list):
+                        if tv is None or tv in seen_1d:
+                            continue
+                        c = lkw.get("color", "#e63946") \
+                            if (len(set(all_vals)) == 1 or n_chains == 1) \
+                            else colors[ch_idx]
+                        ax.axvline(tv, **{**lkw, "color": c})
+                        seen_1d.add(tv)
                     ax.set_xlim(*ranges[p_row])
                     ax.set_ylim(bottom=0)
                     ax.yaxis.set_visible(False)
@@ -2209,13 +2219,26 @@ def quick_corner(
                                        alpha=0.9)
                     tvx = _truth_scalars(truths, px, n_chains)
                     tvy = _truth_scalars(truths, py, n_chains)
-                    for tx, ty in zip(tvx, tvy):
-                        if tx is not None:
-                            ax.axvline(tx, color="#e63946", lw=1.0, ls=":",
-                                       alpha=0.9)
-                        if ty is not None:
-                            ax.axhline(ty, color="#e63946", lw=1.0, ls=":",
-                                       alpha=0.9)
+                    marker = kw_truths.get("marker")
+                    ms     = kw_truths.get("markersize", 6)
+                    lkw    = _line_kw(kw_truths)
+                    all_x = [v for v in tvx if v is not None]
+                    seen_2d: set = set()
+                    for ch_idx in range(n_chains):
+                        tx, ty = tvx[ch_idx], tvy[ch_idx]
+                        c = lkw.get("color", "#e63946") \
+                            if (n_chains == 1 or len(set(all_x)) <= 1) \
+                            else colors[ch_idx]
+                        kw = {**lkw, "color": c}
+                        if tx is not None and tx not in {s[0] for s in seen_2d}:
+                            ax.axvline(tx, **kw)
+                        if ty is not None and ty not in {s[1] for s in seen_2d if len(s) > 1}:
+                            ax.axhline(ty, **kw)
+                        if marker and tx is not None and ty is not None:
+                            ax.plot(tx, ty, marker=marker, ms=ms, color=c,
+                                    zorder=kw_truths.get("zorder", 5) + 1)
+                        if tx is not None and ty is not None:
+                            seen_2d.add((tx, ty))
                     ax.set_xlim(*ranges[px])
                     ax.set_ylim(*ranges[py])
 
