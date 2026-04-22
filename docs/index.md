@@ -1,11 +1,11 @@
 # cornetto
 
 [![Tests](https://img.shields.io/github/actions/workflow/status/nicoborghi/cornetto/tests.yml?label=Tests&logo=github&logoColor=white)](https://github.com/nicoborghi/cornetto/actions)
-[![PyPI](https://img.shields.io/pypi/v/cornetto)](https://pypi.org/project/cornetto/)
-[![Python](https://img.shields.io/pypi/pyversions/cornetto)](https://pypi.org/project/cornetto/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/nicoborghi/cornetto/blob/main/LICENSE)
 [![Coverage](https://img.shields.io/codecov/c/github/nicoborghi/cornetto)](https://codecov.io/gh/nicoborghi/cornetto)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/nicoborghi/cornetto/blob/main/LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/cornetto)](https://pypi.org/project/cornetto/)
 [![Built with Claude](https://img.shields.io/badge/built_with-Claude-orange?logo=anthropic&logoColor=white)](https://claude.ai)
+
 
 **Fast, smooth corner plots for MCMC chains.**
 
@@ -29,7 +29,7 @@ O(N log N) time. At 20k samples a full corner plot renders in well under a
 second on CPU; `quick_corner` (histograms only) is faster still.
 
 <p align="center">
-  <img src="example_cornetto.svg" alt="cornetto corner plot" width="500">
+  <img src="https://raw.githubusercontent.com/nicoborghi/cornetto/refs/heads/main/docs/assets/example_cornetto.svg" alt="cornetto corner plot" width="500">
 </p>
 
 ## Install
