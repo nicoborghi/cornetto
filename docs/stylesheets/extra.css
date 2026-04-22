@@ -1,0 +1,33 @@
+:root  > * {
+  --md-primary-fg-color:        #272a38;
+  --md-primary-bg-color--light: #ffffff;
+  --md-primary-bg-color--dark:  #1e2129;
+  --md-typeset-a-color:         #0072b2;
+  --md-accent-fg-color:         #4ea7d4;
+}
+
+/* Hide In [N]: / Out [N]: prompts in executed notebooks */
+.jp-InputPrompt,
+.jp-OutputPrompt {
+  display: none;
+}
+
+/* Make the top-level "Releases" nav item stand out */
+.md-nav__link[href$="releases/"],
+.md-tabs__link[href$="releases/"] {
+  font-weight: 700;
+}
+
+/* Gallery: render example figures at a consistent 500px width */
+.mkd-glr-single-img,
+.mkd-glr-multi-img,
+img.mkd-glr-single-img,
+img.mkd-glr-multi-img,
+.md-typeset .mkd-glr-single-img,
+.md-typeset .mkd-glr-multi-img {
+  width: 500px !important;
+  max-width: 100% !important;
+  height: auto !important;
+  display: block;
+  margin: 0 auto;
+}

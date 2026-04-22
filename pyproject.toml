@@ -1,0 +1,66 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cornetto"
+version = "0.2.0"
+description = "Fast, smooth corner plots for MCMC chains."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+authors = [
+    { name = "Nicola Borghi" },
+]
+keywords = [
+    "corner-plot",
+    "posterior",
+    "bayesian",
+    "kde",
+    "visualization",
+    "matplotlib",
+    "gravitational-waves",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "Topic :: Scientific/Engineering :: Visualization",
+]
+dependencies = [
+    "numpy>=1.24",
+    "matplotlib>=3.7",
+    "scipy>=1.10",
+    "KDExpress>=0.1.0",
+]
+
+[project.optional-dependencies]
+dev         = ["pytest>=7", "pytest-cov"]
+docs        = ["mkdocs-material>=9.5", "pymdown-extensions>=10.7", "mkdocs-gallery>=0.10"]
+latex       = ["astropy>=5"]
+datashader  = ["datashader>=0.15", "pandas>=1.5"]
+
+[project.urls]
+Homepage      = "https://github.com/nicoborghi/cornetto"
+Documentation = "https://github.com/nicoborghi/cornetto#readme"
+Issues        = "https://github.com/nicoborghi/cornetto/issues"
+Source        = "https://github.com/nicoborghi/cornetto"
+
+[tool.setuptools.packages.find]
+where   = ["."]
+include = ["cornetto*"]
+
+[tool.pytest.ini_options]
+minversion   = "7.0"
+addopts      = "-ra -q"
+testpaths    = ["tests"]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]

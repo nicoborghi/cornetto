@@ -1,0 +1,106 @@
+site_name: cornetto
+site_description: Fast, smooth corner plots for MCMC chains.
+site_url: https://github.com/nicoborghi/cornetto/
+
+# Material for MkDocs — https://github.com/squidfunk/mkdocs-material
+theme:
+  name: material
+  language: en
+  logo: assets/favicon.svg
+  favicon: assets/favicon.svg
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - content.code.copy
+    - content.code.annotate
+    - search.suggest
+    - search.highlight
+    - toc.follow
+  font:
+    text: Inter
+    code: Cascadia Code
+  icon:
+    repo: fontawesome/brands/github
+
+extra_css:
+  - stylesheets/extra.css
+  
+hooks:
+  - docs/gen_plots.py
+
+plugins:
+  - search
+  - mkdocs-jupyter:
+      execute: true
+      kernel_name: python3
+      no_prompt: true
+      ignore:
+        - "generated/gallery/*.ipynb"
+        - "generated/gallery/*.py"
+  - gallery:
+      conf_script: docs/gallery_conf.py
+      examples_dirs: docs/examples
+      gallery_dirs: docs/generated/gallery
+      within_subsection_order: FileNameSortKey
+      image_srcset: ["2x"]
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - toc:
+      permalink: true
+
+nav:
+  - Getting started:
+    - Overview:       index.md
+    - Quickstart:     notebooks/quickstart.ipynb
+    - User guide:     guide.md
+    - Fast mode:      quick-corner.md
+  - Reference:
+    - reference/index.md
+    - API:            api.md
+    - Performance:    performance.md
+    - For LLMs:       for-llms.md
+  - Examples:           generated/gallery
+  - Releases:         releases.md
+
+not_in_nav: |
+  quickstart.md
+  generated/gallery/mg_execution_times.md
+
+repo_url: https://github.com/nicoborghi/cornetto
+repo_name: nicoborghi/cornetto
+edit_uri: edit/main/docs/
+copyright: Copyright &copy; 2026 Nicola Borghi
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/nicoborghi/cornetto
