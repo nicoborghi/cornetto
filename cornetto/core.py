@@ -58,6 +58,60 @@ def _line_kw(kw: dict) -> dict:
     return {k: v for k, v in kw.items() if k not in ("marker", "markersize")}
 
 
+def _delta_label(label: str) -> str:
+    """Prefix ``label`` with Δ — LaTeX-aware for math-mode strings."""
+    if "$" in label:
+        i = label.index("$")
+        return label[:i] + r"$\Delta " + label[i + 1:]
+    return f"Δ{label}"
+
+
+def _apply_delta_shift(
+    chains: list[dict],
+    truths: dict | None,
+    n_chains: int,
+) -> None:
+    """Subtract per-chain truths from every chain in place.
+
+    Each chain index subtracts its own truth value (scalar ``truths[p]``
+    broadcasts to all chains; length-``n_chains`` arrays assign per chain).
+    Raises if ``truths`` is empty or has no usable entries.
+    """
+    if not truths:
+        raise ValueError("delta_mode=True requires `truths` to be provided.")
+    n_applied = 0
+    for p, tv in truths.items():
+        if tv is None:
+            continue
+        arr = np.atleast_1d(tv).astype(float)
+        for ch_idx, ch in enumerate(chains):
+            if p not in ch:
+                continue
+            t = float(arr[ch_idx]) if arr.size > 1 else float(arr[0])
+            ch[p] = ch[p] - t
+        n_applied += 1
+    if n_applied == 0:
+        raise ValueError(
+            "delta_mode=True but `truths` has no usable parameter entries.")
+
+
+def _apply_tick_rotation(axes, rotation: float) -> None:
+    """Rotate visible x- and y-tick labels on every axes in ``axes``."""
+    ha = "right" if rotation > 0 else ("left" if rotation < 0 else "center")
+    va = "top"   if rotation > 0 else ("bottom" if rotation < 0 else "center")
+    for ax in np.asarray(axes).ravel():
+        if ax is None:
+            continue
+        for lbl in ax.get_xticklabels():
+            lbl.set_rotation(rotation)
+            lbl.set_ha(ha)
+            lbl.set_rotation_mode("anchor")
+        for lbl in ax.get_yticklabels():
+            lbl.set_rotation(rotation)
+            lbl.set_va(va)
+            lbl.set_rotation_mode("anchor")
+
+
 # ── Data helpers ──────────────────────────────────────────────────────────────
 
 def _parse_data(
@@ -537,6 +591,7 @@ class Cornetto:
         sigmas:        tuple[float, ...]       = (1, 2),
         kwargs_truths: dict | None             = None,
         kwargs_stats:  dict[str, dict] | None  = None,
+        delta_mode:    bool                    = False,
     ) -> None:
         resolve_stat(stat)  # raises ValueError for unknown strings
 
@@ -562,11 +617,21 @@ class Cornetto:
                 new_chains.append({p: v[idx] for p, v in ch.items()})
             chains = new_chains
 
+        self._delta_mode = bool(delta_mode)
+        if self._delta_mode:
+            _apply_delta_shift(chains, truths, n_chains)
+            # truth overlays disabled — all collapse to 0 anyway
+            truths = None
+
         self._chains        = chains
         self._n_chains      = n_chains
         self._weights       = _norm_weights(weights, n_chains)
         self._ranges    = _compute_ranges(chains, self._param_list, ax_lims)
-        self._labels    = labels or {}
+        labels = dict(labels or {})
+        if self._delta_mode:
+            labels = {p: _delta_label(labels.get(p, p))
+                      for p in self._param_list}
+        self._labels    = labels
         self._truths    = truths
         self._levels_2d = sigmas_to_levels(sigmas)
         self._stat      = stat
@@ -698,6 +763,7 @@ class Cornetto:
         fig:              plt.Figure | None          = None,
         usetex:           bool                       = False,
         use_datashader:   bool                       = False,
+        tick_rotation:    float                      = 0,
     ) -> tuple[plt.Figure, np.ndarray]:
         """
         Render the corner plot.
@@ -744,6 +810,10 @@ class Cornetto:
             Overlay a rasterized scatter of raw samples under the KDE contours
             in 2-D panels. Requires ``datashader`` and ``pandas``
             (``pip install datashader pandas``). Default False.
+        tick_rotation : float
+            Rotate bottom-row xtick labels by this angle (degrees). Helpful
+            on large corners where labels would otherwise overlap and be
+            silently hidden. Default 0 (no rotation).
 
         Returns
         -------
@@ -881,23 +951,23 @@ class Cornetto:
                         ax.set_ylim(*self._ranges[py])
 
                     ax.xaxis.set_major_locator(
-                        mticker.MaxNLocator(4, prune="both"))
+                        mticker.MaxNLocator(4, prune="lower"))
                     ax.yaxis.set_major_locator(
-                        mticker.MaxNLocator(4, prune="both"))
+                        mticker.MaxNLocator(4, prune="lower"))
 
                     if row == N - 1:
                         ax.set_xlabel(
                             self._labels.get(p_col, p_col),
                             labelpad=4, fontsize=9.5)
                     else:
-                        ax.set_xticklabels([])
+                        ax.tick_params(labelbottom=False)
 
                     if col == 0 and row > 0:
                         ax.set_ylabel(
                             self._labels.get(p_row, p_row),
                             labelpad=4, fontsize=9.5)
                     elif row != col:
-                        ax.set_yticklabels([])
+                        ax.tick_params(labelleft=False)
 
             if N > 1:
                 _draw_legend(
@@ -914,6 +984,9 @@ class Cornetto:
                 fig.align_labels()
             except Exception:
                 pass
+
+        if tick_rotation:
+            _apply_tick_rotation(axes, tick_rotation)
 
         self._last_fig   = fig
         self._last_axes  = axes
@@ -1009,6 +1082,7 @@ class Cornetto:
         label_pad   = plot_kwargs.get("label_pad", 0.05)
         title       = plot_kwargs.get("title", "")
         fsz_per_dim = plot_kwargs.get("fig_size_per_dim", 2.0)
+        tick_rotation = plot_kwargs.get("tick_rotation", 0)
 
         theme   = get_theme(dark)
         txt_clr = theme["text.color"]
@@ -1056,7 +1130,7 @@ class Cornetto:
                 show_median=not bool(self._truths),
             )
             ax.set_xlim(*merged_ranges[p])
-            ax.xaxis.set_major_locator(mticker.MaxNLocator(4, prune="both"))
+            ax.xaxis.set_major_locator(mticker.MaxNLocator(4, prune="lower"))
 
         def _other_1d_raw(ax: plt.Axes, p: str,
                           *, show_title: bool = False) -> bool:
@@ -1077,7 +1151,7 @@ class Cornetto:
                 show_median=not bool(other._truths),
             )
             ax.set_xlim(*merged_ranges[p])
-            ax.xaxis.set_major_locator(mticker.MaxNLocator(4, prune="both"))
+            ax.xaxis.set_major_locator(mticker.MaxNLocator(4, prune="lower"))
             return True
 
         def _self_2d(ax: plt.Axes, p_x: str, p_y: str,
@@ -1097,16 +1171,16 @@ class Cornetto:
             )
             ax.set_xlim(*merged_ranges[p_x])
             ax.set_ylim(*merged_ranges[p_y])
-            ax.xaxis.set_major_locator(mticker.MaxNLocator(4, prune="both"))
-            ax.yaxis.set_major_locator(mticker.MaxNLocator(4, prune="both"))
+            ax.xaxis.set_major_locator(mticker.MaxNLocator(4, prune="lower"))
+            ax.yaxis.set_major_locator(mticker.MaxNLocator(4, prune="lower"))
             if x_label:
                 ax.set_xlabel(_plbl(p_x), labelpad=4, fontsize=9.5)
             else:
-                ax.set_xticklabels([])
+                ax.tick_params(labelbottom=False)
             if y_label:
                 ax.set_ylabel(_plbl(p_y), labelpad=4, fontsize=9.5)
             else:
-                ax.set_yticklabels([])
+                ax.tick_params(labelleft=False)
 
         def _other_2d(ax: plt.Axes, p_x: str, p_y: str) -> bool:
             """Draw other's 2-D KDE with p_x on x-axis, p_y on y-axis."""
@@ -1135,8 +1209,8 @@ class Cornetto:
             )
             ax.set_xlim(*merged_ranges[p_x])
             ax.set_ylim(*merged_ranges[p_y])
-            ax.xaxis.set_major_locator(mticker.MaxNLocator(4, prune="both"))
-            ax.yaxis.set_major_locator(mticker.MaxNLocator(4, prune="both"))
+            ax.xaxis.set_major_locator(mticker.MaxNLocator(4, prune="lower"))
+            ax.yaxis.set_major_locator(mticker.MaxNLocator(4, prune="lower"))
             return True
 
         # ══════════════════════════════════════════════════════════════════════
@@ -1191,7 +1265,7 @@ class Cornetto:
                             if row == grid_sz - 1:
                                 ax.set_xlabel(_plbl(p), labelpad=4, fontsize=9.5)
                             else:
-                                ax.set_xticklabels([])
+                                ax.tick_params(labelbottom=False)
 
                         elif col < row - 1:
                             # ── self 2D (lower-left triangle) ────────────────
@@ -1213,7 +1287,7 @@ class Cornetto:
                                     ax.set_xlabel(_plbl(p), labelpad=4,
                                                   fontsize=9.5)
                                 else:
-                                    ax.set_xticklabels([])
+                                    ax.tick_params(labelbottom=False)
 
                         else:
                             # ── other 2D (upper-right triangle) ──────────────
@@ -1230,12 +1304,12 @@ class Cornetto:
                                     ax.set_xlabel(_plbl(p_x), labelpad=4,
                                                   fontsize=9.5)
                                 else:
-                                    ax.set_xticklabels([])
+                                    ax.tick_params(labelbottom=False)
                                 if col == grid_sz - 1:
                                     ax.set_ylabel(_plbl(p_y), labelpad=4,
                                                   fontsize=9.5)
                                 else:
-                                    ax.set_yticklabels([])
+                                    ax.tick_params(labelleft=False)
 
                 # Overlay legend on the first self 1D panel (sub-diagonal)
                 _leg_handles = []
@@ -1299,11 +1373,11 @@ class Cornetto:
                         else:
                             ax.set_xlim(*merged_ranges[p])
                             ax.xaxis.set_major_locator(
-                                mticker.MaxNLocator(4, prune="both"))
+                                mticker.MaxNLocator(4, prune="lower"))
                         if row == N - 1:
                             ax.set_xlabel(_plbl(p), labelpad=4, fontsize=9.5)
                         else:
-                            ax.set_xticklabels([])
+                            ax.tick_params(labelbottom=False)
 
                     elif col < row:
                         # ── self 2D (lower triangle) ─────────────────────────
@@ -1328,12 +1402,12 @@ class Cornetto:
                                 ax.set_xlabel(_plbl(p_x), labelpad=4,
                                               fontsize=9.5)
                             else:
-                                ax.set_xticklabels([])
+                                ax.tick_params(labelbottom=False)
                             if col == N - 1:
                                 ax.set_ylabel(_plbl(p_y), labelpad=4,
                                               fontsize=9.5)
                             else:
-                                ax.set_yticklabels([])
+                                ax.tick_params(labelleft=False)
 
             # Overlay legend on the first diagonal 1D panel
             _leg_handles = []
@@ -1353,6 +1427,9 @@ class Cornetto:
                 fig.align_labels()
             except Exception:
                 pass
+
+        if tick_rotation:
+            _apply_tick_rotation(axes, tick_rotation)
 
         self._last_fig   = fig
         self._last_axes  = axes
@@ -1464,7 +1541,7 @@ class Cornetto:
                 ax.set_xlim(*self._ranges[param])
                 ax.set_xlabel(self._labels.get(param, param),
                               labelpad=4, fontsize=9.5)
-                ax.xaxis.set_major_locator(mticker.MaxNLocator(4, prune="both"))
+                ax.xaxis.set_major_locator(mticker.MaxNLocator(4, prune="lower"))
 
             # Hide unused axes in last row
             for idx in range(N, n_rows * n_cols):
@@ -1609,9 +1686,9 @@ class Cornetto:
                 ax.set_ylim(*y_range)
                 ax.set_ylabel(self._labels.get(param, param),
                               labelpad=4, fontsize=9.5, color=txt_clr)
-                ax.yaxis.set_major_locator(mticker.MaxNLocator(4, prune="both"))
+                ax.yaxis.set_major_locator(mticker.MaxNLocator(4, prune="lower"))
                 if row < N - 1:
-                    ax.set_xticklabels([])
+                    ax.tick_params(labelbottom=False)
                 else:
                     ax.set_xlabel("Sample index", labelpad=4, fontsize=9.5)
 
@@ -1745,10 +1822,10 @@ class Cornetto:
                     param=lbl,
                 )
                 ax_m.set_xlim(*y_range)
-                ax_m.xaxis.set_major_locator(mticker.MaxNLocator(3, prune="both"))
+                ax_m.xaxis.set_major_locator(mticker.MaxNLocator(3, prune="lower"))
                 ax_m.set_ylabel(lbl, labelpad=4, fontsize=9.5, color=txt_clr)
                 if row < N - 1:
-                    ax_m.set_xticklabels([])
+                    ax_m.tick_params(labelbottom=False)
 
                 # ── Right: trace ──────────────────────────────────────────────
                 for ch, color in zip(self._chains, colors):
@@ -1783,10 +1860,10 @@ class Cornetto:
 
                 ax_t.set_xlim(0.0, float(max_n))
                 ax_t.set_ylim(*y_range)
-                ax_t.set_yticklabels([])
-                ax_t.yaxis.set_major_locator(mticker.MaxNLocator(4, prune="both"))
+                ax_t.tick_params(labelleft=False)
+                ax_t.yaxis.set_major_locator(mticker.MaxNLocator(4, prune="lower"))
                 if row < N - 1:
-                    ax_t.set_xticklabels([])
+                    ax_t.tick_params(labelbottom=False)
                 else:
                     ax_t.set_xlabel("Sample index", labelpad=4, fontsize=9.5)
 
@@ -1962,7 +2039,7 @@ class Cornetto:
 _INIT_KEYS: frozenset[str] = frozenset({
     "params", "labels", "truths", "chain_labels", "weights",
     "subsample", "ax_lims", "max_chains", "stat", "sigmas",
-    "kwargs_truths", "kwargs_stats",
+    "kwargs_truths", "kwargs_stats", "delta_mode",
 })
 
 
@@ -2012,6 +2089,8 @@ def quick_corner(
     title:         str | None           = None,
     fig:           plt.Figure | None    = None,
     usetex:        bool                 = False,
+    tick_rotation: float                = 0,
+    delta_mode:    bool                 = False,
 ) -> tuple[plt.Figure, np.ndarray]:
     """
     Fastest corner plot in cornetto — histograms-only, any dimension.
@@ -2061,6 +2140,12 @@ def quick_corner(
     line_alpha = min(fill_alpha * 3.5, 1.0)
     param_list, chains = _parse_data(data, MAX_CHAINS, keep_params=params)
     n_chains = len(chains)
+
+    if delta_mode:
+        _apply_delta_shift(chains, truths, n_chains)
+        truths = None
+        labels = {p: _delta_label((labels or {}).get(p, p))
+                  for p in param_list}
 
     if subsample:
         rng = np.random.default_rng()
@@ -2243,21 +2328,21 @@ def quick_corner(
                     ax.set_ylim(*ranges[py])
 
                 ax.xaxis.set_major_locator(
-                    mticker.MaxNLocator(3, prune="both"))
+                    mticker.MaxNLocator(3, prune="lower"))
                 ax.yaxis.set_major_locator(
-                    mticker.MaxNLocator(3, prune="both"))
+                    mticker.MaxNLocator(3, prune="lower"))
 
                 if row == N - 1:
                     ax.set_xlabel(labels.get(p_col, p_col),
                                   labelpad=3, fontsize=9)
                 else:
-                    ax.set_xticklabels([])
+                    ax.tick_params(labelbottom=False)
 
                 if col == 0 and row > 0:
                     ax.set_ylabel(labels.get(p_row, p_row),
                                   labelpad=3, fontsize=9)
                 elif row != col:
-                    ax.set_yticklabels([])
+                    ax.tick_params(labelleft=False)
 
         if N > 1 and axes[0, N - 1] is not None:
             _draw_legend(
@@ -2269,6 +2354,9 @@ def quick_corner(
 
         if title:
             fig.suptitle(title, fontsize=10, fontweight="600", y=1.01)
+
+    if tick_rotation:
+        _apply_tick_rotation(axes, tick_rotation)
 
     return fig, axes
 

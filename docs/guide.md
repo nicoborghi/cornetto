@@ -225,6 +225,26 @@ corner(data,
 Defaults: red (`#e63946`), solid line, diamond marker. Override any
 matplotlib line/marker kwarg through `kwargs_truths`.
 
+### Delta mode
+
+`delta_mode=True` subtracts the supplied truths from every chain and relabels
+axes with a leading `Δ`. Handy to eyeball posterior deviations from the
+injected/true values - everything centres on zero.
+
+```python
+corner(data,
+       truths={"m1": 30.0, "m2": 25.0},
+       delta_mode=True)
+```
+
+- Requires `truths` (raises `ValueError` otherwise).
+- Per-chain truths (`truths={"m1": [30., 31.]}`) subtract one value per chain,
+  so every chain collapses around zero regardless of its true injected value.
+- Truth overlays are suppressed (they'd all lie at 0).
+- `ax_lims` is interpreted in delta space (e.g. `{"m1": (-5, 5)}`).
+- Works on `corner()`, `quick_corner()`, `marginal()`, `trace()`,
+  `trace_marginal()`, and `pairplot()` (wherever `Cornetto` backs the plot).
+
 ### Statistic styling
 
 Per-stat visual overrides (line style and fill alpha on the diagonal):
