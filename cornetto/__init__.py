@@ -54,4 +54,9 @@ __all__ = [
     "SummaryTable", "hdi", "compute_stats", "sigmas_to_levels", "DEFAULT_LEVELS",
     "stat_median", "stat_median_mad", "stat_median_hdi", "stat_mean", "STAT_REGISTRY",
 ]
-__version__ = "0.2.0"
+from importlib.metadata import PackageNotFoundError, version as _pkg_version
+
+try:
+    __version__ = _pkg_version("cornetto")
+except PackageNotFoundError:
+    __version__ = "0.0.0+unknown"
