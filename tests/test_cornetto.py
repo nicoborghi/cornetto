@@ -19,7 +19,9 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from cornetto import Cornetto, corner
+from cornetto import (
+    Cornetto, corner, quick_corner, marginal, trace, trace_marginal,
+)
 from cornetto.styles import ColorManager
 
 @pytest.fixture(autouse=True)
@@ -392,6 +394,101 @@ class TestColorManager:
         line_rgbs = [tuple(c[:3]) for c in line]
         assert len(set(fill_rgbs)) > 1
         assert len(set(line_rgbs)) > 1
+
+
+# ── Smoke tests: marginal / trace / trace_marginal / quick_corner ────────────
+
+
+class TestMarginal:
+    def test_grid_shape_single_chain(self):
+        fig, axes = marginal(_single_data(), ncols=2)
+        n_params = 3
+        n_cols = 2
+        n_rows = (n_params + n_cols - 1) // n_cols
+        assert axes.shape == (n_rows, n_cols)
+
+    def test_multi_chain_legend_and_labels(self):
+        fig, axes = marginal(
+            _multi_data(n_chains=2),
+            chain_labels=["A", "B"],
+            labels={"mass": r"$M$", "spin": r"$\chi$"},
+        )
+        assert axes.size >= 3
+
+    def test_fill_and_peaks(self):
+        fig, axes = marginal(
+            _single_data(), fill_1d=True, annotate_peaks=True, show_titles=True,
+        )
+        assert axes.size >= 3
+
+    def test_cornetto_method(self):
+        c = Cornetto(_single_data())
+        fig, axes = c.marginal(ncols=3)
+        assert axes.shape[1] == 3
+
+
+class TestQuickCorner:
+    def test_single_chain_returns_grid(self):
+        fig, axes = quick_corner(_single_data(), subsample=1000)
+        assert axes.shape == (3, 3)
+
+    def test_multi_chain_with_truths(self):
+        fig, axes = quick_corner(
+            _multi_data(n_chains=2),
+            chain_labels=["A", "B"],
+            truths={"mass": 30.0},
+            labels={"mass": r"$M$"},
+            bins=20,
+            sigmas=(1,),
+        )
+        assert axes.shape == (3, 3)
+
+    def test_custom_stat(self):
+        fig, axes = quick_corner(_single_data(), stat="median_hdi")
+        assert axes.shape == (3, 3)
+
+    def test_dark_theme(self):
+        fig, axes = quick_corner(_single_data(), dark=True)
+        assert axes.shape == (3, 3)
+
+
+class TestTrace:
+    def test_single_chain_shape(self):
+        fig, axes = trace(_single_data(), use_datashader=False)
+        assert axes.shape == (3,)
+
+    def test_multi_chain_with_labels(self):
+        fig, axes = trace(
+            _multi_data(n_chains=2),
+            chain_labels=["A", "B"],
+            labels={"mass": r"$M$"},
+            use_datashader=False,
+        )
+        assert axes.shape == (3,)
+
+    def test_cornetto_method(self):
+        c = Cornetto(_single_data())
+        fig, axes = c.trace(use_datashader=False)
+        assert axes.shape == (3,)
+
+
+class TestTraceMarginal:
+    def test_shape_two_columns(self):
+        fig, axes = trace_marginal(_single_data(), use_datashader=False)
+        assert axes.shape == (3, 2)
+
+    def test_multi_chain(self):
+        fig, axes = trace_marginal(
+            _multi_data(n_chains=2),
+            chain_labels=["A", "B"],
+            use_datashader=False,
+        )
+        assert axes.shape == (3, 2)
+
+    def test_cornetto_method(self):
+        c = Cornetto(_single_data())
+        fig, axes = c.trace_marginal(use_datashader=False)
+        assert axes.shape == (3, 2)
 
 
 # ── Entry point for running without pytest ────────────────────────────────────

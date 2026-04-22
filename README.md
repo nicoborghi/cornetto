@@ -1,25 +1,24 @@
 # cornetto
 
 [![Tests](https://img.shields.io/github/actions/workflow/status/nicoborghi/cornetto/tests.yml?label=Tests&logo=github&logoColor=white)](https://github.com/nicoborghi/cornetto/actions)
-[![PyPI](https://img.shields.io/pypi/v/cornetto)](https://pypi.org/project/cornetto/)
-[![Python](https://img.shields.io/pypi/pyversions/cornetto)](https://pypi.org/project/cornetto/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/nicoborghi/cornetto/blob/main/LICENSE)
 [![Coverage](https://img.shields.io/codecov/c/github/nicoborghi/cornetto)](https://codecov.io/gh/nicoborghi/cornetto)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/nicoborghi/cornetto/blob/main/LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/cornetto)](https://pypi.org/project/cornetto/)
 [![Built with Claude](https://img.shields.io/badge/built_with-Claude-orange?logo=anthropic&logoColor=white)](https://claude.ai)
 
 **Fast, smooth corner plots for MCMC chains.**
 
 > [!NOTE]
-> **Early release** — cornetto is built for research use and works well for everyday analysis, but the API may still evolve and some features are still maturing. Feedback and contributions are very welcome.
+> **Early release** - cornetto is built for research use and works well for everyday analysis, but the API may still evolve and some features are still maturing. Feedback and contributions are very welcome.
 
 Cornetto takes a `dict[str, array]` of posterior samples and produces
 publication-ready corner plots. Under the hood it uses
-[KDExpress](https://github.com/mtagliazucchi/KDExpress) — a JAX-based
-FFT-KDE library — so contours are smooth and rendering stays fast even at
+[KDExpress](https://github.com/mtagliazucchi/KDExpress) - a JAX-based
+FFT-KDE library - so contours are smooth and rendering stays fast even at
 50k+ samples.
 
 <p align="center">
-  <img src="docs/example_cornetto.svg" alt="cornetto corner plot" width="500">
+  <img src="https://raw.githubusercontent.com/nicoborghi/cornetto/refs/heads/main/docs/assets/example_cornetto.svg" alt="cornetto corner plot" width="500">
 </p>
 
 ## Install
@@ -79,4 +78,4 @@ Full guide, API reference, and benchmarks at
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT - see [LICENSE](LICENSE).
